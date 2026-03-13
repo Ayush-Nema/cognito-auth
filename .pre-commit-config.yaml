@@ -1,12 +1,4 @@
 repos:
-  - repo: local
-    hooks:
-      - id: git-secrets
-        name: git-secrets
-        entry: git secrets --scan
-        language: system
-        types: [text]
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.10
     hooks:
