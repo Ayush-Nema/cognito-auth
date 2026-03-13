@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Request
 
 from app.core.config import settings
 from app.core.limiter import limiter
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_role
 from app.domain.models import (
     AdminCreateUserRequest,
     AdminCreateUserResponse,
@@ -18,10 +18,12 @@ from app.domain.models import (
     RefreshTokenRequest,
     ResendConfirmationRequest,
     ResetPasswordRequest,
+    RoleAssignmentRequest,
     TokenData,
     TokenRefreshResponse,
     User,
     UserLogin,
+    UserRolesResponse,
 )
 from app.services.auth_service import AuthService
 
@@ -110,7 +112,7 @@ async def hello(current_user: TokenData = Depends(get_current_user)):
 @router.post("/users", response_model=AdminCreateUserResponse, status_code=201)
 async def create_user(
     body: AdminCreateUserRequest,
-    _: TokenData = Depends(get_current_user),
+    _: TokenData = Depends(require_role("admin")),
 ):
     """Admin endpoint to create a new user with a generated temporary password."""
     return auth_service.admin_create_user(body)
@@ -119,7 +121,34 @@ async def create_user(
 @router.delete("/users/{email}", response_model=MessageResponse)
 async def delete_user(
     email: str,
-    _: TokenData = Depends(get_current_user),
+    _: TokenData = Depends(require_role("admin")),
 ):
     """Admin endpoint to delete a user from the User Pool."""
     return auth_service.admin_delete_user(email)
+
+
+@router.post("/roles/assign", response_model=MessageResponse)
+async def assign_role(
+    body: RoleAssignmentRequest,
+    _: TokenData = Depends(require_role("admin")),
+):
+    """Admin endpoint to assign a role (Cognito group) to a user."""
+    return auth_service.assign_role(body)
+
+
+@router.post("/roles/remove", response_model=MessageResponse)
+async def remove_role(
+    body: RoleAssignmentRequest,
+    _: TokenData = Depends(require_role("admin")),
+):
+    """Admin endpoint to remove a role (Cognito group) from a user."""
+    return auth_service.remove_role(body)
+
+
+@router.get("/roles/{email}", response_model=UserRolesResponse)
+async def get_user_roles(
+    email: str,
+    _: TokenData = Depends(require_role("admin")),
+):
+    """Admin endpoint to list all roles assigned to a user."""
+    return auth_service.get_user_roles(email)

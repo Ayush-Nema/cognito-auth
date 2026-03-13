@@ -1,6 +1,7 @@
-"""JWT verification utilities for Cognito-issued tokens."""
+"""JWT verification and role-based access control utilities for Cognito-issued tokens."""
 
 import time
+from collections.abc import Callable
 
 import httpx
 from fastapi import Depends, HTTPException, status
@@ -44,6 +45,7 @@ def verify_token(token: str) -> TokenData:
     Raises HTTP 401 if the token is malformed, has an unknown key ID,
     fails signature verification, or does not satisfy issuer / token_use checks.
     """
+
     def _fail(reason: str) -> HTTPException:
         return HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -54,9 +56,7 @@ def verify_token(token: str) -> TokenData:
     try:
         jwks = _get_jwks()
         header = jwt.get_unverified_header(token)
-        key = next(
-            (k for k in jwks["keys"] if k["kid"] == header.get("kid")), None
-        )
+        key = next((k for k in jwks["keys"] if k["kid"] == header.get("kid")), None)
         if key is None:
             raise _fail(f"no matching key for kid={header.get('kid')}")
 
@@ -68,15 +68,21 @@ def verify_token(token: str) -> TokenData:
         )
 
         if payload.get("iss") != ISSUER:
-            raise _fail(f"iss mismatch: got {payload.get('iss')!r}, expected {ISSUER!r}")
+            raise _fail(
+                f"iss mismatch: got {payload.get('iss')!r}, expected {ISSUER!r}"
+            )
         if payload.get("token_use") != settings.token_use:
-            raise _fail(f"token_use is {payload.get('token_use')!r}, expected {settings.token_use!r}")
+            raise _fail(
+                f"token_use is {payload.get('token_use')!r}, expected {settings.token_use!r}"
+            )
 
         email: str | None = payload.get("email")
         if email is None:
             raise _fail("email claim not present in token")
 
-        return TokenData(email=email, sub=payload.get("sub"))
+        roles: list[str] = payload.get("cognito:groups", [])
+
+        return TokenData(email=email, sub=payload.get("sub"), roles=roles)
     except JWTError as exc:
         raise _fail(str(exc)) from exc
 
@@ -86,3 +92,25 @@ def get_current_user(
 ) -> TokenData:
     """FastAPI dependency that extracts and validates the Bearer token from the request."""
     return verify_token(credentials.credentials)
+
+
+def require_role(*allowed_roles: str) -> Callable:
+    """Return a FastAPI dependency that enforces role-based access control.
+
+    Usage:
+        @router.post("/admin-only")
+        async def admin_endpoint(user: TokenData = Depends(require_role("admin"))):
+            ...
+    """
+
+    def role_checker(
+        current_user: TokenData = Depends(get_current_user),
+    ) -> TokenData:
+        if not any(role in current_user.roles for role in allowed_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"This action requires one of the following roles: {', '.join(allowed_roles)}",
+            )
+        return current_user
+
+    return role_checker

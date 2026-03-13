@@ -108,8 +108,23 @@ class TokenRefreshResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class RoleAssignmentRequest(BaseModel):
+    """Request to assign or remove a role from a user."""
+
+    email: EmailStr
+    role: str
+
+
+class UserRolesResponse(BaseModel):
+    """Response listing the roles assigned to a user."""
+
+    email: str
+    roles: list[str]
+
+
 class TokenData(BaseModel):
     """Decoded claims extracted from a validated Cognito ID token."""
 
     email: str
     sub: str | None = None
+    roles: list[str] = []

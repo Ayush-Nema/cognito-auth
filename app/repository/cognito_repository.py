@@ -110,9 +110,7 @@ class CognitoRepository:
         except ClientError as e:
             raise e
 
-    def change_password(
-        self, access_token: str, old_password: str, new_password: str
-    ):
+    def change_password(self, access_token: str, old_password: str, new_password: str):
         """Change the password for an authenticated user."""
         try:
             return self.client.change_password(
@@ -146,5 +144,38 @@ class CognitoRepository:
                 UserPoolId=settings.cognito_user_pool_id,
                 Username=email,
             )
+        except ClientError as e:
+            raise e
+
+    def admin_add_user_to_group(self, email: str, group_name: str):
+        """Add a user to a Cognito group (role)."""
+        try:
+            return self.client.admin_add_user_to_group(
+                UserPoolId=settings.cognito_user_pool_id,
+                Username=email,
+                GroupName=group_name,
+            )
+        except ClientError as e:
+            raise e
+
+    def admin_remove_user_from_group(self, email: str, group_name: str):
+        """Remove a user from a Cognito group (role)."""
+        try:
+            return self.client.admin_remove_user_from_group(
+                UserPoolId=settings.cognito_user_pool_id,
+                Username=email,
+                GroupName=group_name,
+            )
+        except ClientError as e:
+            raise e
+
+    def admin_list_groups_for_user(self, email: str) -> list[str]:
+        """List all Cognito groups (roles) a user belongs to."""
+        try:
+            response = self.client.admin_list_groups_for_user(
+                UserPoolId=settings.cognito_user_pool_id,
+                Username=email,
+            )
+            return [group["GroupName"] for group in response.get("Groups", [])]
         except ClientError as e:
             raise e

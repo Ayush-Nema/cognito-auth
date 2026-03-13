@@ -15,6 +15,7 @@ from app.domain.models import (
     RefreshTokenRequest,
     ResendConfirmationRequest,
     ResetPasswordRequest,
+    RoleAssignmentRequest,
     User,
     UserLogin,
 )
@@ -32,7 +33,9 @@ class AuthService:
         """Register a new user and prompt them to verify their email."""
         try:
             self.repo.sign_up_user(user.email, user.password)
-            return {"message": "User registered successfully. Check your email for a verification code"}
+            return {
+                "message": "User registered successfully. Check your email for a verification code"
+            }
         except ClientError as e:
             raise handle_cognito_error(e) from e
 
@@ -117,9 +120,14 @@ class AuthService:
                 + "".join(secrets.choice(alphabet) for _ in range(8))
             )
             self.repo.admin_create_user(body.email, temporary_password)
-            return {"message": f"User {body.email} created successfully", "temporary_password": temporary_password}
+            return {
+                "message": f"User {body.email} created successfully",
+                "temporary_password": temporary_password,
+            }
         except NoCredentialsError as e:
-            raise HTTPException(status_code=500, detail="AWS credentials not configured") from e
+            raise HTTPException(
+                status_code=500, detail="AWS credentials not configured"
+            ) from e
         except ClientError as e:
             raise handle_cognito_error(e) from e
 
@@ -129,6 +137,44 @@ class AuthService:
             self.repo.admin_delete_user(email)
             return {"message": f"User {email} deleted successfully"}
         except NoCredentialsError as e:
-            raise HTTPException(status_code=500, detail="AWS credentials not configured") from e
+            raise HTTPException(
+                status_code=500, detail="AWS credentials not configured"
+            ) from e
+        except ClientError as e:
+            raise handle_cognito_error(e) from e
+
+    def assign_role(self, body: RoleAssignmentRequest):
+        """Assign a role (Cognito group) to a user."""
+        try:
+            self.repo.admin_add_user_to_group(body.email, body.role)
+            return {"message": f"Role '{body.role}' assigned to {body.email}"}
+        except NoCredentialsError as e:
+            raise HTTPException(
+                status_code=500, detail="AWS credentials not configured"
+            ) from e
+        except ClientError as e:
+            raise handle_cognito_error(e) from e
+
+    def remove_role(self, body: RoleAssignmentRequest):
+        """Remove a role (Cognito group) from a user."""
+        try:
+            self.repo.admin_remove_user_from_group(body.email, body.role)
+            return {"message": f"Role '{body.role}' removed from {body.email}"}
+        except NoCredentialsError as e:
+            raise HTTPException(
+                status_code=500, detail="AWS credentials not configured"
+            ) from e
+        except ClientError as e:
+            raise handle_cognito_error(e) from e
+
+    def get_user_roles(self, email: str):
+        """List all roles (Cognito groups) assigned to a user."""
+        try:
+            roles = self.repo.admin_list_groups_for_user(email)
+            return {"email": email, "roles": roles}
+        except NoCredentialsError as e:
+            raise HTTPException(
+                status_code=500, detail="AWS credentials not configured"
+            ) from e
         except ClientError as e:
             raise handle_cognito_error(e) from e
