@@ -1,7 +1,7 @@
 [project]
 name = "cognito-auth"
 version = "0.1.0"
-description = "Add your description here"
+description = "FastAPI-based authentication service powered by AWS Cognito"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
