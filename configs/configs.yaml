@@ -1,0 +1,22 @@
+aws:
+  region: us-east-1
+
+cognito:
+  user_pool_id: xxxxxxxxxxxxx
+  client_id: xxxxxxxxxxxxx
+
+app:
+  allowed_hosts:
+    - "*"
+  host: "0.0.0.0"
+  port: 8000
+
+security:
+  jwks_ttl: 3600
+  jwt_algorithm: RS256
+  token_use: id
+
+rate_limits:
+  signup: "5/minute"
+  login: "10/minute"
+  forgot_password: "3/minute"
