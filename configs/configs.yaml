@@ -2,7 +2,7 @@ aws:
   region: us-east-1
 
 cognito:
-  user_pool_id: xxxxxxxxxxxxx
+  user_pool_id: us-east-1-ursdk39235jfks
   client_id: xxxxxxxxxxxxx
 
 app:
