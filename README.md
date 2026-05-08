@@ -12,7 +12,9 @@ Source article: [Implementing AWS Cognito for User Management in FastAPI with Cl
 
 ```
 app/
-├── main.py                      # Entry point, middleware, rate limiting
+├── main.py                      # Entry point, middleware (GZip, X-Process-Time,
+│                                #   Cache-Control), custom OpenAPI BearerAuth,
+│                                #   rate limiting, lifespan logging
 ├── api/
 │   └── v1/
 │       └── routes.py            # API endpoints
@@ -20,13 +22,16 @@ app/
 │   ├── config.py                # Settings (loaded from configs/configs.yaml)
 │   ├── errors.py                # Cognito error → HTTP response mapping
 │   ├── limiter.py               # Rate limiter setup
+│   ├── logging.py               # Loguru config, get_logger()
 │   └── security.py              # JWT verification, JWKS cache
 ├── domain/
 │   └── models.py                # Pydantic request/response models
 ├── services/
-│   └── auth_service.py          # Business logic
-└── repository/
-    └── cognito_repository.py    # AWS Cognito API calls
+│   └── auth_service.py          # Business logic (with structured logging)
+├── repository/
+│   └── cognito_repository.py    # AWS Cognito API calls
+└── utils/
+    └── aws_utils.py             # AWS Secrets Manager helper
 ```
 
 ---

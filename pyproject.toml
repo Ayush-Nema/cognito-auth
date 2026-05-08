@@ -8,6 +8,7 @@ dependencies = [
     "boto3>=1.42.66",
     "fastapi>=0.135.1",
     "httpx>=0.28.0",
+    "loguru>=0.7.3",
     "python-jose[cryptography]>=3.4.0",
     "slowapi>=0.1.9",
     "pydantic[email]>=2.12.5",
